@@ -1,0 +1,33 @@
+{
+    "value": [{
+            "name": "Owner",
+            "address": null,
+            "totalSWT": null,
+            "payable": "100",
+            "mintable": "1000",
+            "burnable": "1000",
+            "stakeamount": "1000",
+            "unstakeamount": "1999000"
+        },
+        {
+            "name": "Alice",
+            "address": null,
+            "totalSWT": null,
+            "payable": "20",
+            "mintable": "1000",
+            "burnable": "1000",
+            "stakeamount": "1",
+            "unstakeamount": "99"
+        },
+        {
+            "name": "Bob",
+            "address": null,
+            "totalSWT": null,
+            "payable": "40",
+            "mintable": "1000",
+            "burnable": "1000",
+            "stakeamount": "1",
+            "unstakeamount": "99"
+        }
+    ]
+}

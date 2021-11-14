@@ -1,35 +1,16 @@
 const SWLToken = artifacts.require("SWLToken");
 const utils = require('./helpers/utils');
 var expect = require('chai').expect;
-const Users = [{
-        name: "Owner",
-        address: null,
-        totalSWT: null,
-        mintable: 1000,
-        burnable: 1000
-    },
-    {
-        name: "Alice",
-        address: null,
-        totalSWT: null,
-        payable: 20,
-        mintable: 1000,
-        burnable: 1000
-    },
-    {
-        name: "Bob",
-        address: null,
-        totalSWT: null,
-        payable: 40,
-        mintable: 1000,
-        burnable: 1000
-    }
-];
+var should = require('chai').should;
+var web3 = require('web3');
+const Users = require('./fixtures/Users.json');
 
-contract("ERC20", (accounts) => {
-    let owner = accounts[0];
-    let alice = accounts[3];
-    let bob = accounts[4];
+contract("SWLToken", (accounts) => {
+    const owner = accounts[0];
+    const alice = accounts[3];
+    const bob = accounts[4];
+    const ken = accounts[5];
+    const address0 = '0x0';
     let contractInstance;
 
     beforeEach(async() => {
@@ -37,66 +18,102 @@ contract("ERC20", (accounts) => {
     });
 
     /**
-     * owner should mint new token
-     * @dev Kevin
-     * @param amount
+     * @context owner should mint new token
+     * @dev KevinNguyen
      */
-
-    /**
-     * alice shouldn't mint token
-     * @dev Kevin
-     * @param amount
-     */
-
-
-    /**
-     * owner should burn some token 
-     * @dev Kevin
-     * @param amount
-     */
-
-    /**
-     * alice shouldn't burn token
-     * @dev Kevin
-     * @param amount
-     */
+    context('owner should mint new token', async() => {
+        it('an amount of token mint by Owner', async() => {
+            const minter = await contractInstance.mint(alice, web3.utils.toWei(Users.value[0].payable, 'ether'), { from: owner });
+            expect(minter.receipt.status).is.equal(true);
+        });
+    });
 
 
     /**
-     * owner be able transfer(drop  token) to alice and bob
-     * @dev Kevin
-     * @param amount
+     * @context others shouldn't mint token
+     * @dev KevinNguyen
      */
+    context('others should not mint token', async() => {
+        it('others should not mint to their address', async() => {
+            await utils.shouldThrow(contractInstance.mint(alice, web3.utils.toWei(Users.value[1].payable, 'ether'), { from: alice }));
+        });
+    });
+
+    /**
+     * @context  anyone can burn their token
+     * @dev KevinNguyen
+     */
+    context('anyone can burn token ', async() => {
+        beforeEach('ensure owner and others have enough token to burn', async() => {
+            await contractInstance.mint(owner, web3.utils.toWei(Users.value[0].mintable, 'ether'), { from: owner });
+            await contractInstance.mint(alice, web3.utils.toWei(Users.value[1].mintable, 'ether'), { from: owner });
+        });
+
+        it('owner can burn some token', async() => {
+            const burnerOwner = await contractInstance.burn(web3.utils.toWei(Users.value[0].burnable, 'ether'), { from: owner });
+            expect(burnerOwner.receipt.status).is.equal(true);
+        });
+
+        it('anyone can burn token of them', async() => {
+            const balanceAlice = await contractInstance.balanceOf(alice);
+            expect(web3.utils.fromWei(balanceAlice, 'ether')).is.equal(Users.value[1].mintable);
+            const burnerAlice = await contractInstance.burn(web3.utils.toWei(Users.value[1].burnable, 'ether'), { from: alice });
+            expect(burnerAlice.receipt.status).is.equal(true);
+        });
+
+    });
 
 
     /**
-     * alice transfer direct to bob
-     * @dev Kevin
-     * @param amount
+     * @context anyone can be able transfer(drop token) to anyone
+     * @dev KevinNguyen
      */
-    // alice should transfer small amount of her's token to bob
-    // alice shouldn't transfer amount of token greater than her's token to bob
+    context('anyone can be able transfer to anyone', async() => {
+        beforeEach('ensure account have balance to transfer', async() => {
+            await contractInstance.mint(alice, web3.utils.toWei(Users.value[1].mintable, 'ether'), { from: owner });
+        });
+        it('can transfer success to other', async() => {
+            const aliceTransfer = await contractInstance.transfer(bob, web3.utils.toWei(Users.value[1].payable, 'ether'), { from: alice });
+            expect(aliceTransfer.receipt.status).is.equal(true);
+        });
+
+        it('cannot transfer exceed your balance to other', async() => {
+            await utils.shouldThrow(contractInstance.transfer(bob, web3.utils.toWei(Users.value[1].unburnable, 'ether'), { from: alice }));
+
+        });
+
+    });
 
     /**
-     * alice can approve for bob withraw amount of approved token from her
-     * @dev Kevin
-     * @param amount
+     * @context alice can approve for bob withraw amount of approved token from her
+     * @dev KevinNguyen
      */
-    // alice should aprove small amount of her's token to bob
-    // alice shouldn't approve amount of token greater than her's token to bob
+    context('spender can approve for store to withdraw', async() => {
+        beforeEach('ensure spender have token to approve', async() => {
+            await contractInstance.mint(alice, web3.utils.toWei(Users.value[1].mintable, 'ether'), { from: owner });
+        });
 
+        it('spender be able approve for store withdraw', async() => {
+            const spender = await contractInstance.approve(bob, web3.utils.toWei(Users.value[1].payable, 'ether'), { from: alice });
+            expect(spender.receipt.status).is.equal(true);
+            const store = await contractInstance.transferFrom(alice, bob, web3.utils.toWei(Users.value[1].payable, 'ether'), { from: bob });
+            expect(store.receipt.status).is.equal(true);
+        });
 
-    /**
-     * alice can deposit some ETH to mint token
-     * @dev Kevin
-     * @param etherAmount
-     */
+        it('spender be able approve but store cannot withdraw higher than approved amount', async() => {
+            const spender = await contractInstance.approve(bob, web3.utils.toWei(Users.value[1].payable, 'ether'), { from: alice });
+            expect(spender.receipt.status).is.equal(true);
+            await utils.shouldThrow(contractInstance.transferFrom(alice, bob, web3.utils.toWei(Users.value[1].unpayable, 'ether'), { from: bob }));
+        });
 
-    /**
-     * alice can withdraw some SWT to ETH
-     * @dev Kevin
-     * @param swtAmount
-     */
+        it('store unable to TransferForm token from address 0', async() => {
+            await utils.shouldThrow(contractInstance.transferFrom(address0, web3.utils.toWei(Users.value[1].payable, 'ether'), { from: alice }));
+        });
 
+        it('store unable to TransferForm token from unapprove amount of token from other account', async() => {
+            await utils.shouldThrow(contractInstance.transferFrom(bob, web3.utils.toWei(Users.value[1].payable, 'ether'), { from: alice }));
+        });
+
+    });
 
 });

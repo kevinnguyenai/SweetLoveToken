@@ -3,7 +3,7 @@
             "name": "Owner",
             "address": null,
             "totalSWT": null,
-            "payable": "100",
+            "payable": "500",
             "mintable": "1000",
             "burnable": "1000",
             "stakeamount": "1000",
@@ -16,8 +16,9 @@
             "payable": "20",
             "mintable": "1000",
             "burnable": "1000",
-            "stakeamount": "1",
-            "unstakeamount": "99"
+            "stakeamount": "300",
+            "stakeearn": "200.03",
+            "unstakeamount": "200"
         },
         {
             "name": "Bob",
@@ -27,7 +28,8 @@
             "mintable": "1000",
             "burnable": "1000",
             "stakeamount": "1",
-            "unstakeamount": "99"
+            "stakeearn": "299.0001",
+            "unstakeamount": "299"
         },
         {
             "name": "Ken",
@@ -36,8 +38,20 @@
             "payable": "40",
             "mintable": "1000",
             "burnable": "1000",
-            "stakeamount": "10",
-            "unstakeamount": "90"
+            "stakeamount": "300",
+            "stakeearn": "200.03",
+            "unstakeamount": "200"
+        },
+        {
+            "name": "Joe",
+            "address": null,
+            "totalSWT": null,
+            "payable": "40",
+            "mintable": "1000",
+            "burnable": "1000",
+            "stakeamount": "350",
+            "stakeearn": "150.035",
+            "unstakeamount": "150"
         }
     ]
 }

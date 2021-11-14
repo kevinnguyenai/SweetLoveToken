@@ -10,6 +10,7 @@ contract("SWLToken", (accounts) => {
     let alice = accounts[3];
     let bob = accounts[4];
     let ken = accounts[5];
+    let joe = accounts[6];
     let attacker = "0xF1BdCD9cB673378dEee00dc5848e5Abac3189D5D";
     let contractInstance;
 
@@ -119,6 +120,44 @@ contract("SWLToken", (accounts) => {
         });
     });
 
+    /**
+     * @notice test staker earn when sys transaction from Alice to Bob
+     * @context in case ken earn enough reward from system (only Ken in pool)
+     * in case ken and Alice in pool staker and transaction from Owner to Bob
+     * @dev 
+     */
+    context('Staker can earn SWL token when system have transfer', async() => {
+        it('staker earn enough token from engine reward', async() => {
+            const KenStaker = await contractInstance.createStake(web3.utils.toWei(Users.value[1].stakeamount, 'ether'), { from: ken });
+            expect(KenStaker.receipt.status).is.equal(true);
+            const AliceTransferBob = await contractInstance.transfer(bob, web3.utils.toWei(Users.value[1].payable), { from: alice });
+            expect(AliceTransferBob.receipt.status).is.equal(true);
+            const KenBalance = await contractInstance.balanceOf.call(ken, { from: ken });
+            expect(web3.utils.fromWei(KenBalance, 'ether')).is.equal((Users.value[3].stakeearn).toString());
+        });
 
+        it('random staker will be reward', async() => {
+            const AliceStaker = await contractInstance.createStake(web3.utils.toWei(Users.value[1].stakeamount, 'ether'), { from: alice });
+            expect(AliceStaker.receipt.status).is.equal(true);
+            const KenStaker = await contractInstance.createStake(web3.utils.toWei(Users.value[1].stakeamount, 'ether'), { from: ken });
+            expect(KenStaker.receipt.status).is.equal(true);
+            const OwnerTransferBob = await contractInstance.transfer(bob, web3.utils.toWei(Users.value[1].payable), { from: owner });
+            expect(OwnerTransferBob.receipt.status).is.equal(true);
+            const AliceBalance = await contractInstance.balanceOf.call(alice, { from: alice });
+            const KenBalance = await contractInstance.balanceOf.call(ken, { from: ken });
+            expect(AliceBalance, KenBalance).satisfy(async() => {
+                if (web3.utils.fromWei(AliceBalance, 'ether') == (Users.value[1].stakeearn).toString()) {
+                    return true;
+                } else
+                if (web3.utils.fromWei(KenBalance, 'ether') == (Users.value[3].stakeearn).toString()) {
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+
+
+        });
+    });
 
 });

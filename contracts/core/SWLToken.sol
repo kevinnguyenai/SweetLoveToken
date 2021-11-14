@@ -16,8 +16,8 @@ import "../erc/access/Ownable.sol";
 
 contract SWLToken is ISWLToken, ERC20Capped, ERC20PresetMinterPauser, Ownable {
     
-    constructor() ERC20PresetMinterPauser("Sweet Love Token", "SWL") ERC20Capped(100000000*10**18) {
-        _mint(_msgSender(), 2000000*10**18);
+    constructor() ERC20PresetMinterPauser("Sweet Love Token", "SWL") ERC20Capped(100000000e18) {
+        _mint(_msgSender(), 2000000e18);
     }
     using SafeMath for uint256;
     /**
@@ -113,6 +113,12 @@ contract SWLToken is ISWLToken, ERC20Capped, ERC20PresetMinterPauser, Ownable {
     mapping(address => uint256) internal rewards;
 
     /**
+     * @notice limit amount can be staked by staker
+     * @dev KevinNguyen
+     */
+    uint256 limitstake = 300e18;
+
+    /**
      * @notice The constructor for SWTToken is a Staking token
      * @param _owner The address that received all token from constructor
      * @param _supply The amount of token to mint on constructor
@@ -126,6 +132,7 @@ contract SWLToken is ISWLToken, ERC20Capped, ERC20PresetMinterPauser, Ownable {
      */
     function createStake(uint256 stake) public virtual override returns(bool) {
         require(_msgSender() != address(0), "send from 0x0 address is forbidden");
+        require(stake >= limitstake, "stake amount is under current limit");
         _createStake(_msgSender(), stake);
         return true;
     }
@@ -305,7 +312,7 @@ contract SWLToken is ISWLToken, ERC20Capped, ERC20PresetMinterPauser, Ownable {
         //uint startTime = 0;
         //uint endTime = 0 + 60 seconds;
         //uint diff = (endTime - startTime); // 60 seconds
-        return (stakes[_stakeholder] / 10**6);
+        return (stakes[_stakeholder] / 10e3);
     }
 
     /**
@@ -375,7 +382,7 @@ contract SWLToken is ISWLToken, ERC20Capped, ERC20PresetMinterPauser, Ownable {
      * @notice Method used to withdraw Reward by stakeholder caller
      * @dev KevinNguyen
      */
-    function _withdrawReward() internal virtual isRewarderModifier {
+    function _withdrawReward() internal virtual {
         (address winner, ) = _distributeWinnerStaker();
         uint256 reward = rewards[winner];
         rewards[winner] = 0;

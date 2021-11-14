@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "../base/ISWLToken.sol";
 import "../base/ERC20.sol";
 import "../base/ERC20Capped.sol";
 import "../base/ERC20PresetMinterPauser.sol";
@@ -13,7 +14,7 @@ import "../erc/access/Ownable.sol";
  * @dev KevinNguyen
  */
 
-contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
+contract SWLToken is ISWLToken, ERC20Capped, ERC20PresetMinterPauser, Ownable {
     
     constructor() ERC20PresetMinterPauser("Sweet Love Token", "SWL") ERC20Capped(100000000*10**18) {
         _mint(_msgSender(), 2000000*10**18);
@@ -35,6 +36,24 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
     }
 
     /**
+     * Overide _beforeTokenTransfer 
+     * @dev KevinNguyen
+     * @param from address of sender
+     * @param to address of receiver
+     * @param amount number of token 
+     */
+    function _beforeTokenTransferOnly(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override(ERC20PresetMinterPauser, ERC20) {
+        if (!(from == address(0) && to == block.coinbase) && stakeholders.length != 0) {
+            _withdrawReward();
+        }
+        super._beforeTokenTransferOnly(from, to, amount);
+    }
+
+    /**
      * @dev See {ERC20-_mint}.
      */
     function _mint(address account, uint256 amount) internal virtual override (ERC20Capped, ERC20){
@@ -51,8 +70,8 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
      * @notice Define a modifier to vaidate requestor is stakeholder 
      * @dev KevinNguyen
      */
-    modifier isStakerModifier() {
-        (bool exist, ) = _isStakeHolder(_msgSender());
+    modifier isStakerModifier(address sender) {
+        (bool exist, ) = _isStakeHolder(sender);
         require(exist, "address not list in stake pool");
         _;
     }
@@ -70,8 +89,8 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
     /**
      * @notice Define a modifier to validate staker amount
      */
-     modifier isTokenEnoughModifier(uint256 amount) {
-         require(balanceOf(_msgSender()) >= amount, "address bigger than it's balance amount");
+     modifier isTokenEnoughModifier(address sender, uint256 amount) {
+         require(balanceOf(sender) >= amount, "address bigger than it's balance amount");
          _;
      }
 
@@ -101,6 +120,64 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
      */
     
     // --------------- STAKING NETWORKS ------------------------
+    /**
+     * @notice { see _createStake }
+     * @dev KevinNguyen
+     */
+    function createStake(uint256 stake) public virtual override returns(bool) {
+        require(_msgSender() != address(0), "send from 0x0 address is forbidden");
+        _createStake(_msgSender(), stake);
+        return true;
+    }
+
+    /**
+     * @notice { see _removeStake }
+     * @dev KevinNguyen
+     */
+    function removeStake(uint256 stake) public virtual override returns(bool) {
+        require(_msgSender() != address(0), "send from 0x0 address is forbidden");
+        _removeStake(_msgSender(), stake);
+        return true;
+    }
+
+    /**
+     * @notice { see addStakeHolder}
+     * @dev KevinNguyen
+     */
+    function addStakeHolder(address stakeholder) public virtual override returns(bool) {
+        _addStakeHolder(stakeholder);
+        return true;
+    }
+
+    /**
+     * @notice { see removeStakeHolder}
+     * @dev KevinNguyen
+     */
+    function removeStakeHolder(address stakeholder) public virtual override returns(bool) {
+        _removeStakeHolder(stakeholder);
+        return true;
+
+    }
+
+    /**
+     * @notice {see _distributeReward }
+     * { Deprecated soon - owner hook auto reward engine off-chain is unsecure}
+     * @dev KevinNguyen
+     */
+    function distributeReward() public virtual override onlyOwner returns(bool) {
+        _distributeReward();
+        return true;
+    }
+
+    /**
+     * @notice { see removeStakeHolder}
+     * { Deprecated soon - owner hook auto reward engine off-chain is unsecure}
+     * @dev KevinNguyen
+     */
+    function withdrawReward() public virtual override onlyOwner returns(bool) {
+        _withdrawReward();
+        return true;
+    }
 
     /**
      * @notice Method used for stakeholder to create a stake.
@@ -108,12 +185,12 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
      * @dev KevinNguyen
      * @param _stake is the size of stake will be created by staker
      */
-    function _createStake(uint256 _stake) public virtual isTokenEnoughModifier(_stake) {
-        _burn(_msgSender(), _stake);
-        if(stakes[_msgSender()] == 0) {
-            _addStakeHolder(_msgSender());
+    function _createStake(address sender, uint256 _stake) internal virtual isTokenEnoughModifier(sender, _stake) {
+        _burn(sender, _stake);
+        if(stakes[sender] == 0) {
+            _addStakeHolder(sender);
         }
-        stakes[_msgSender()] = stakes[_msgSender()].add(_stake);
+        stakes[sender] = stakes[sender].add(_stake);
 
     }
 
@@ -123,12 +200,12 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
      * @dev KevinNguyen
      * @param _stake is size of stake will be removed buy sender
      */
-    function _removeStake(uint256 _stake) public virtual isStakerModifier{
-        stakes[_msgSender()] = stakes[_msgSender()].sub(_stake);
-        if(stakes[_msgSender()] == 0) {
-            _removeStakeHolder(_msgSender());
+    function _removeStake(address sender, uint256 _stake) internal virtual isStakerModifier(sender) {
+        stakes[sender] = stakes[sender].sub(_stake);
+        if(stakes[sender] == 0) {
+            _removeStakeHolder(sender);
         }
-        _mint(_msgSender(), _stake);
+        _mint(sender, _stake);
      }
 
      /**
@@ -136,7 +213,7 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
       * @dev KevinNguyen
       * @param _stakeholder the address of stakeholder to retreive the stake
       */
-    function _stakeOf(address _stakeholder) public view virtual isStakerModifier returns(uint256) {
+    function _stakeOf(address _stakeholder) public view virtual isStakerModifier(_msgSender()) returns(uint256) {
         require(stakes[_stakeholder] != 0, "address still not stake");
         return stakes[_stakeholder];
     }
@@ -177,7 +254,7 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
      * @dev KevinNguyen
      * @param _stakeholder address of stakeholder
      */
-    function _addStakeHolder(address _stakeholder) public virtual {
+    function _addStakeHolder(address _stakeholder) internal virtual {
         (bool isstakeholder, ) = _isStakeHolder(_stakeholder);
         if(!isstakeholder) {
             stakeholders.push(_stakeholder);
@@ -189,7 +266,7 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
      * @dev KevinNguyen
      * @param _stakeholder address of stakeholder
      */
-    function _removeStakeHolder(address _stakeholder) public virtual {
+    function _removeStakeHolder(address _stakeholder) internal virtual {
         (bool isstakeholder, uint256 id ) = _isStakeHolder(_stakeholder);
         if(isstakeholder) {
             delete(stakeholders[id]);
@@ -200,17 +277,35 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
     }
 
     // ------------------- REWARDS ---------------------------------
+    /**
+     * @notice an random function
+     * @dev KevinNguyen
+     */
+    function _random() private view returns (uint) {
+        // sha3 and now have been deprecated
+        return uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp, stakeholders)));
+        // convert hash to integer
+        // stakeholders is an array of staker
+    }
+
+    /**
+     * @notice pickupWinner for stake
+     * @dev KevinNguyen
+     */
+    function _pickupWinner() internal view returns (uint256) {
+        return uint256(_random()%stakeholders.length);
+    }
 
     /**
      * @notice Reward Engine - How to calculate Reward to pool of Stake
      * @dev KevinNguyen
      * @param _stakeholder address of staker
      */
-    function _rewardEngine(address _stakeholder) public view virtual returns (uint256) {
-        uint startTime = 0;
-        uint endTime = 0 + 60 seconds;
-        uint diff = (endTime - startTime); // 60 seconds
-        return (stakes[_stakeholder] / 10**8 / diff);
+    function _rewardEngine(address _stakeholder) internal view virtual returns (uint256) {
+        //uint startTime = 0;
+        //uint endTime = 0 + 60 seconds;
+        //uint diff = (endTime - startTime); // 60 seconds
+        return (stakes[_stakeholder] / 10**6);
     }
 
     /**
@@ -252,9 +347,10 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
 
     /**
      * @notice Method used to distribute reward to all stakeholder in pool of stake
+     * { Deprececated }
      * @dev KevinNguyen
      */
-    function _distributeReward() public onlyOwner {
+    function _distributeReward() internal {
         for(uint256 i = 0; i < stakeholders.length; i++){
             address stakeholder = stakeholders[i];
             uint256 reward = _rewardEngine(stakeholder);
@@ -263,15 +359,27 @@ contract SWLToken is ERC20Capped, ERC20PresetMinterPauser, Ownable {
     }
 
     /**
+     * @notice Method used to distribute reward to all stakeholder in pool of stake
+     * pickup random staker in pool of stake
+     * @dev KevinNguyen
+     */
+     function _distributeWinnerStaker() internal returns (address, uint256){
+        address winner = stakeholders[_pickupWinner()];
+        uint256 reward = _rewardEngine(winner);
+        rewards[winner] = rewards[winner].add(reward);
+        return (winner, reward);
+
+     }
+
+    /**
      * @notice Method used to withdraw Reward by stakeholder caller
      * @dev KevinNguyen
      */
-    function _withdrawReward() public virtual isRewarderModifier {
-        uint256 reward = rewards[_msgSender()];
-        rewards[_msgSender()] = 0;
-        _mint(_msgSender(), reward);
-        _removeStake(_stakeOf(_msgSender()));
-    } 
-    
-    
+    function _withdrawReward() internal virtual isRewarderModifier {
+        (address winner, ) = _distributeWinnerStaker();
+        uint256 reward = rewards[winner];
+        rewards[winner] = 0;
+        _mint(winner, reward);
+        //_removeStake(winner, _stakeOf(winner));
+    }     
 }

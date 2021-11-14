@@ -28,6 +28,16 @@
             "burnable": "1000",
             "stakeamount": "1",
             "unstakeamount": "99"
+        },
+        {
+            "name": "Ken",
+            "address": null,
+            "totalSWT": null,
+            "payable": "40",
+            "mintable": "1000",
+            "burnable": "1000",
+            "stakeamount": "10",
+            "unstakeamount": "90"
         }
     ]
 }

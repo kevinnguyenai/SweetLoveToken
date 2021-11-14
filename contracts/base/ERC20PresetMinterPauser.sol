@@ -88,4 +88,12 @@ contract ERC20PresetMinterPauser is Context, AccessControlEnumerable, ERC20Burna
     ) internal virtual override(ERC20, ERC20Pausable) {
         super._beforeTokenTransfer(from, to, amount);
     }
+
+    function _beforeTokenTransferOnly(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override(ERC20, ERC20Pausable) {
+        super._beforeTokenTransferOnly(from, to, amount);
+    }
 }

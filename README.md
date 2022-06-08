@@ -1,10 +1,7 @@
-### ------------------------- SWEET LOVE TOKEN (SWT) ---------------------------
-
-### consensys by Proof of Stake
-
+### ------------------------- SWEET LOVE TOKEN (SWL) ---------------------------
 ### feature
 - ERC20 token (tested)
-- Stakeable (implemen PoS) (tested) ( just for practioner understanding PoS)
+- Staking token to earn (tested)
 - governance (developing)
 - ERC721 token NFT (developing)
 - ...

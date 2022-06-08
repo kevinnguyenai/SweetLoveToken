@@ -39,14 +39,13 @@ module.exports = {
                     phrase: mnemonicPharse
                 },
                 providerOrUrl: `https://rinkeby.infura.io/v3/${projectId}`,
-                numberOfAddresses: 2,
-                shareNonce: true,
-                derivationPath: "m/44'/1'/0'/0/"
+                numberOfAddresses: 1,
+                shareNonce: true
             }),
             network_id: 4, // Rinkeby's id
             gas: 5500000, // Rinkeby has a lower block limit than mainnet
             confirmations: 2, // # of confs to wait between deployments. (default: 0)
-            timeoutBlocks: 200, // # of blocks before a deployment times out (minimum/default:50)
+            timeoutBlocks: 300, // # of blocks before a deployment times out (minimum/default:50)
             skipDryRun: true, // Skip dry run before migrations ? ( default: false)
             networkCheckTimeout: 999999
         },
